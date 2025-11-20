@@ -1,3 +1,4 @@
+import { SparkButton } from '@/components/spark-button';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -151,11 +152,13 @@ const Item = ({ item, shouldPlay, videoHeight, videoIndex, onOpenComments }: {sh
       
       {/* Right side actions */}
       <View style={styles.rightActions}>
-        <ActionButton
+        <SparkButton
           icon="heart-outline"
           count={data.likes + (isLiked ? 1 : 0)}
           onPress={handleLike}
           isLiked={isLiked}
+          primaryColor="#FF3040"
+          secondaryColor="#FF6B6B"
         />
         <ActionButton
           icon="chatbubble-outline"
