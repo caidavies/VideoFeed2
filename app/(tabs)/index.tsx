@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const videos = [
   "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
@@ -9,6 +11,40 @@ const videos = [
   "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
   "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
   "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+];
+
+// Mock comments data for each video
+const commentsData = [
+  [
+    { id: '1', username: 'nature_lover', avatar: 'https://i.pravatar.cc/150?img=10', comment: 'This is absolutely breathtaking! Where was this taken?', likes: 45, timeAgo: '2h' },
+    { id: '2', username: 'traveler_joe', avatar: 'https://i.pravatar.cc/150?img=11', comment: 'Wow! The colors are amazing 🌅', likes: 23, timeAgo: '3h' },
+    { id: '3', username: 'photo_fan', avatar: 'https://i.pravatar.cc/150?img=12', comment: 'Perfect timing for the sunset shot!', likes: 67, timeAgo: '4h' },
+    { id: '4', username: 'mountain_climber', avatar: 'https://i.pravatar.cc/150?img=13', comment: 'Been there! The view is even better in person', likes: 12, timeAgo: '5h' },
+    { id: '5', username: 'sunset_chaser', avatar: 'https://i.pravatar.cc/150?img=14', comment: 'Adding this to my bucket list!', likes: 89, timeAgo: '6h' },
+  ],
+  [
+    { id: '1', username: 'hiker_pro', avatar: 'https://i.pravatar.cc/150?img=15', comment: 'How long was the hike? Looks challenging!', likes: 34, timeAgo: '1h' },
+    { id: '2', username: 'adventure_seeker', avatar: 'https://i.pravatar.cc/150?img=16', comment: 'The view is worth every step! 💪', likes: 56, timeAgo: '2h' },
+    { id: '3', username: 'trail_master', avatar: 'https://i.pravatar.cc/150?img=17', comment: 'What trail is this? Need to check it out!', likes: 78, timeAgo: '3h' },
+    { id: '4', username: 'outdoor_life', avatar: 'https://i.pravatar.cc/150?img=18', comment: 'Amazing! How was the weather?', likes: 45, timeAgo: '4h' },
+  ],
+  [
+    { id: '1', username: 'dev_coder', avatar: 'https://i.pravatar.cc/150?img=19', comment: 'What are you building? Looks interesting!', likes: 12, timeAgo: '30m' },
+    { id: '2', username: 'tech_enthusiast', avatar: 'https://i.pravatar.cc/150?img=20', comment: 'Coffee and code - the perfect combo ☕️', likes: 34, timeAgo: '1h' },
+    { id: '3', username: 'programmer_life', avatar: 'https://i.pravatar.cc/150?img=21', comment: 'Same energy! What language are you using?', likes: 23, timeAgo: '2h' },
+  ],
+  [
+    { id: '1', username: 'beach_bum', avatar: 'https://i.pravatar.cc/150?img=22', comment: 'Perfect beach day! Wish I was there 🏖️', likes: 67, timeAgo: '1h' },
+    { id: '2', username: 'summer_vibes', avatar: 'https://i.pravatar.cc/150?img=23', comment: 'The water looks so clear!', likes: 45, timeAgo: '2h' },
+    { id: '3', username: 'vacation_mode', avatar: 'https://i.pravatar.cc/150?img=24', comment: 'Where is this? Need to visit!', likes: 89, timeAgo: '3h' },
+    { id: '4', username: 'ocean_lover', avatar: 'https://i.pravatar.cc/150?img=25', comment: 'Beautiful! The weather looks perfect', likes: 56, timeAgo: '4h' },
+  ],
+  [
+    { id: '1', username: 'foodie_lover', avatar: 'https://i.pravatar.cc/150?img=26', comment: 'That looks delicious! Can you share the recipe?', likes: 123, timeAgo: '1h' },
+    { id: '2', username: 'cooking_master', avatar: 'https://i.pravatar.cc/150?img=27', comment: 'What ingredients did you use?', likes: 67, timeAgo: '2h' },
+    { id: '3', username: 'chef_in_making', avatar: 'https://i.pravatar.cc/150?img=28', comment: 'I need to try this! Looks amazing 🍳', likes: 89, timeAgo: '3h' },
+    { id: '4', username: 'recipe_hunter', avatar: 'https://i.pravatar.cc/150?img=29', comment: 'Please post the full recipe!', likes: 145, timeAgo: '4h' },
+  ],
 ];
 
 // Mock data for each video
@@ -41,7 +77,31 @@ const formatCount = (count: number): string => {
   return count.toString();
 };
 
-const Item = ({ item, shouldPlay, videoHeight, videoIndex }: {shouldPlay: boolean; item: string; videoHeight: number; videoIndex: number}) => {
+const CommentItem = ({ comment }: { comment: typeof commentsData[0][0] }) => {
+  return (
+    <View style={styles.commentItem}>
+      <Image source={{ uri: comment.avatar }} style={styles.commentAvatar} />
+      <View style={styles.commentContent}>
+        <View style={styles.commentHeader}>
+          <Text style={styles.commentUsername}>{comment.username}</Text>
+          <Text style={styles.commentTime}>{comment.timeAgo}</Text>
+        </View>
+        <Text style={styles.commentText}>{comment.comment}</Text>
+        <View style={styles.commentActions}>
+          <TouchableOpacity style={styles.commentLikeButton}>
+            <Ionicons name="heart-outline" size={16} color="#666" />
+            <Text style={styles.commentLikeCount}>{comment.likes}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.commentReplyButton}>
+            <Text style={styles.commentReplyText}>Reply</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const Item = ({ item, shouldPlay, videoHeight, videoIndex, onOpenComments }: {shouldPlay: boolean; item: string; videoHeight: number; videoIndex: number; onOpenComments: (index: number) => void}) => {
   const player = useVideoPlayer(item, (player) => {
     player.loop = true;
   });
@@ -74,6 +134,10 @@ const Item = ({ item, shouldPlay, videoHeight, videoIndex }: {shouldPlay: boolea
     setIsCaptionExpanded(!isCaptionExpanded);
   };
 
+  const handleCommentsPress = () => {
+    onOpenComments(videoIndex);
+  };
+
   return (
     <View style={[styles.videoContainer, { height: videoHeight }]}>
       <Pressable onPress={handleVideoPress} style={styles.videoWrapper}>
@@ -96,7 +160,7 @@ const Item = ({ item, shouldPlay, videoHeight, videoIndex }: {shouldPlay: boolea
         <ActionButton
           icon="chatbubble-outline"
           count={data.comments}
-          onPress={() => {}}
+          onPress={handleCommentsPress}
         />
         <ActionButton
           icon="share-outline"
@@ -127,6 +191,8 @@ const Item = ({ item, shouldPlay, videoHeight, videoIndex }: {shouldPlay: boolea
 
 export default function HomeScreen() {
   const [currentViewableItemIndex, setCurrentViewableItemIndex] = useState(0);
+  const [currentCommentsIndex, setCurrentCommentsIndex] = useState(0);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const windowData = Dimensions.get('window');
   
   // Calculate video height: use window height minus 82px
@@ -146,13 +212,30 @@ export default function HomeScreen() {
     offset: videoHeight * index,
     index,
   });
+
+  const handleOpenComments = useCallback((index: number) => {
+    setCurrentCommentsIndex(index);
+    bottomSheetRef.current?.expand();
+  }, []);
+
+  const handleCloseComments = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
+
+  const renderCommentItem = useCallback(({ item }: { item: typeof commentsData[0][0] }) => {
+    return <CommentItem comment={item} />;
+  }, []);
+
+  const snapPoints = useMemo(() => ['50%', '90%'], []);
+
+  const currentComments = commentsData[currentCommentsIndex] || [];
   
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <FlatList
       data={videos}
       renderItem={({ item, index }) => (
-        <Item item={item} shouldPlay={index === currentViewableItemIndex} videoHeight={videoHeight} videoIndex={index} />
+        <Item item={item} shouldPlay={index === currentViewableItemIndex} videoHeight={videoHeight} videoIndex={index} onOpenComments={handleOpenComments} />
       )}
       keyExtractor={item => item}
       pagingEnabled
@@ -162,7 +245,29 @@ export default function HomeScreen() {
       getItemLayout={getItemLayout}
       decelerationRate="fast"
     />
-    </View>
+    
+    <BottomSheet
+      ref={bottomSheetRef}
+      index={-1}
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      backgroundStyle={styles.bottomSheetBackground}
+      handleIndicatorStyle={styles.bottomSheetIndicator}
+    >
+      <View style={styles.bottomSheetHeader}>
+        <Text style={styles.bottomSheetTitle}>Comments</Text>
+        <TouchableOpacity onPress={handleCloseComments}>
+          <Ionicons name="close" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
+      <BottomSheetFlatList
+        data={currentComments}
+        renderItem={renderCommentItem}
+        keyExtractor={(item: typeof commentsData[0][0]) => item.id}
+        contentContainerStyle={styles.commentsList}
+      />
+    </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
@@ -232,5 +337,85 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     lineHeight: 18,
+  },
+  bottomSheetBackground: {
+    backgroundColor: '#FFFFFF',
+  },
+  bottomSheetIndicator: {
+    backgroundColor: '#CCCCCC',
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  commentsList: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  commentUsername: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  commentTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  commentLikeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  commentLikeCount: {
+    fontSize: 12,
+    color: '#666',
+  },
+  commentReplyButton: {
+    paddingVertical: 4,
+  },
+  commentReplyText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
 });
