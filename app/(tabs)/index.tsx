@@ -151,8 +151,8 @@ const Item = ({
   });
   const [isLiked, setIsLiked] = useState(false);
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
-  const [showPlayOverlay, setShowPlayOverlay] = useState(!shouldPlay);
-  const overlayOpacity = useSharedValue(shouldPlay ? 0 : 1);
+  const [showPlayOverlay, setShowPlayOverlay] = useState(false);
+  const overlayOpacity = useSharedValue(0);
   const hideOverlayTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const data = videoData[videoIndex];
 
@@ -207,12 +207,10 @@ const Item = ({
   );
 
   useEffect(() => {
-    if (shouldPlay) {
-      hideOverlay(250);
-    } else {
-      showOverlay();
-    }
-  }, [shouldPlay, hideOverlay, showOverlay]);
+    clearOverlayTimeout();
+    setShowPlayOverlay(false);
+    overlayOpacity.value = 0;
+  }, [shouldPlay, clearOverlayTimeout, overlayOpacity]);
 
   useEffect(() => {
     return () => {
