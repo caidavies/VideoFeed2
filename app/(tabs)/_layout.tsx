@@ -12,19 +12,20 @@ export default function TabLayout() {
   return (
     <NativeTabs tintColor={Colors[colorScheme ?? 'light'].tint}>
       <NativeTabs.Trigger name="index">
-        <Label>Home</Label>
+        <Label>Videos</Label>
         {Platform.select({
-          ios: <Icon sf="house.fill" />,
+          ios: <Icon sf="video.fill" />,
           default: <Icon src={<VectorIcon family={MaterialIcons} name="home" />} />,
         })}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="explore">
         <Label>Explore</Label>
-        {Platform.select({
-          ios: <Icon sf="paperplane.fill" />,
-          default: <Icon src={<VectorIcon family={MaterialIcons} name="send" />} />,
+        {Platform.select({ 
+          ios: <Icon sf="compass.fill" />,
+          default: <Icon src={<VectorIcon family={MaterialIcons} name="explore" />} />,
         })}
       </NativeTabs.Trigger>
+
     </NativeTabs>
   );
 }
